@@ -1,0 +1,1 @@
+No-op commit to trigger GitHub Actions workflow (the `on: push: branches: [main]` trigger needs a push to fire).
