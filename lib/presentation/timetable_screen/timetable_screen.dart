@@ -115,7 +115,6 @@ String _deriveCategory(String code) {
     'NSG': 'Nursing', 'GWH': 'Women\'s Health', 'FME': 'Family Medicine',
     'SWE': 'Software Engineering', 'BPCD': 'Planning & Development',
     'BGWH': 'Women\'s Health', 'STP': 'Student Projects',
-    'MLS': 'Medical Laboratory',
     'SUR': 'Surgery', 'WEL': 'Welcoming',
     'PHX': 'Pharmacology & Therapeutics', 'BPS': 'Pharmaceutical Sciences',
     'BSE': 'Biomedical Engineering', 'CVE': 'Civil Engineering',
