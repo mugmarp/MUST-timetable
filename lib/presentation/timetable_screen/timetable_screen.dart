@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
@@ -52,21 +54,21 @@ class TimetableEntry {
   factory TimetableEntry.fromMap(Map<String, dynamic> map) {
     return TimetableEntry(
       id: map['id'] as String,
-      courseCode: map['courseCode'] as String,
-      courseTitle: map['courseTitle'] as String,
-      category: map['category'] as String,
-      sessionType: map['sessionType'] as String,
-      dayOfWeek: map['dayOfWeek'] as String,
-      startTime: map['startTime'] as String,
-      endTime: map['endTime'] as String,
-      room: map['room'] as String,
-      building: map['building'] as String,
-      lecturerName: map['lecturerName'] as String,
-      lecturerAvatar: map['lecturerAvatar'] as String,
-      programmeGroups: List<String>.from(map['programmeGroups'] as List),
-      rating: map['rating'] as String,
-      ratingValue: (map['ratingValue'] as num).toDouble(),
-      lecturerSemanticLabel: map['lecturerSemanticLabel'] as String,
+      courseCode: (map['courseCode'] ?? map['code'] ?? '') as String,
+      courseTitle: (map['courseTitle'] ?? map['courseName'] ?? '') as String,
+      category: (map['category'] ?? _deriveCategory(map['courseCode'] ?? map['code'] ?? '')) as String,
+      sessionType: (map['sessionType'] ?? map['note'] ?? 'theory') as String,
+      dayOfWeek: (map['dayOfWeek'] ?? map['day'] ?? '') as String,
+      startTime: (map['startTime'] ?? '') as String,
+      endTime: (map['endTime'] ?? '') as String,
+      room: (map['room'] ?? map['venue'] ?? '') as String,
+      building: (map['building'] ?? '') as String,
+      lecturerName: (map['lecturerName'] ?? map['lecturer'] ?? '') as String,
+      lecturerAvatar: (map['lecturerAvatar'] ?? '') as String,
+      programmeGroups: List<String>.from(map['programmeGroups'] ?? map['cohorts'] ?? []),
+      rating: (map['rating'] ?? '0.0') as String,
+      ratingValue: (map['ratingValue'] as num?)?.toDouble() ?? 0.0,
+      lecturerSemanticLabel: (map['lecturerSemanticLabel'] ?? '') as String,
     );
   }
 
@@ -90,209 +92,46 @@ class TimetableEntry {
   };
 }
 
+String _deriveCategory(String code) {
+  if (code.isEmpty) return 'General';
+  final prefix = code.replaceAll(RegExp(r'\d'), '').toUpperCase();
+  const categories = {
+    'BIT': 'Information Technology', 'BCS': 'Computer Science',
+    'BME': 'Biomedical Engineering', 'EEE': 'Electrical Engineering',
+    'CIV': 'Civil Engineering', 'MIE': 'Mechanical Engineering',
+    'PEM': 'Production Engineering', 'DLT': 'Dental Technology',
+    'BBA': 'Business Administration', 'BAF': 'Accounting & Finance',
+    'ECO': 'Economics', 'BSAF': 'Actuarial Science', 'BPSM': 'Project Management',
+    'BSAL': 'Food Science & Technology', 'BSP': 'Physiotherapy',
+    'BSPC': 'Speech & Hearing', 'BNS': 'Nursing Science',
+    'BNC': 'Nursing (Clinical)', 'MLS': 'Medical Laboratory',
+    'MLC': 'Medical Clinical', 'MBR': 'Medicine',
+    'PHA': 'Pharmacy', 'PHS': 'Physiology',
+    'BIO': 'Biology', 'CHM': 'Chemistry', 'PHY': 'Physics',
+    'MAT': 'Mathematics', 'CSC': 'Computer Science',
+    'BCH': 'Biochemistry', 'ANA': 'Anatomy', 'MIC': 'Microbiology',
+    'PHM': 'Pharmacology', 'DVS': 'Development Studies',
+    'COM': 'Communication', 'CMH': 'Community Health',
+    'NSG': 'Nursing', 'GWH': 'Women\'s Health', 'FME': 'Family Medicine',
+    'SWE': 'Software Engineering', 'BPCD': 'Planning & Development',
+    'BGWH': 'Women\'s Health', 'STP': 'Student Projects',
+    'MLS': 'Medical Laboratory', 'BIO': 'Biology',
+    'SUR': 'Surgery', 'WEL': 'Welcoming',
+    'PHX': 'Pharmacology & Therapeutics', 'BPS': 'Pharmaceutical Sciences',
+    'BSE': 'Biomedical Engineering', 'CVE': 'Civil Engineering',
+    'DCS': 'Computer Science', 'MCB': 'Microbiology',
+    'OBG': 'Obstetrics & Gynaecology', 'PCH': 'Paediatrics',
+    'SUG': 'Surgery',
+  };
+  final sortedKeys = categories.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
+  for (final key in sortedKeys) {
+    if (prefix.startsWith(key)) return categories[key]!;
+  }
+  return 'General';
+}
+
 // Mock data — Map-first pattern
-final List<Map<String, dynamic>> _timetableEntryMaps = [
-  {
-    'id': 'te001',
-    'courseCode': 'BSC 2101',
-    'courseTitle': 'Biochemistry & Cell Biology',
-    'category': 'Life Sciences',
-    'sessionType': 'theory',
-    'dayOfWeek': 'Monday',
-    'startTime': '08:00',
-    'endTime': '10:00',
-    'room': 'LT 3',
-    'building': 'Main Block',
-    'lecturerName': 'Dr. Nakamya Ruth',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_19469930f-1763299082322.png',
-    'programmeGroups': ['MBR 1', 'PHA I'],
-    'rating': '4.2',
-    'ratingValue': 4.2,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan woman in white lab coat smiling',
-  },
-  {
-    'id': 'te002',
-    'courseCode': 'PHY 2203',
-    'courseTitle': 'Medical Physics & Instrumentation',
-    'category': 'Physics',
-    'sessionType': 'practical',
-    'dayOfWeek': 'Monday',
-    'startTime': '10:00',
-    'endTime': '13:00',
-    'room': 'Physics Lab 1',
-    'building': 'Science Block',
-    'lecturerName': 'Mr. Ochieng James',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_103ed5b0c-1763301455344.png',
-    'programmeGroups': ['MBR 1'],
-    'rating': '3.8',
-    'ratingValue': 3.8,
-    'lecturerSemanticLabel':
-        'Professional headshot of East African man in blue shirt',
-  },
-  {
-    'id': 'te003',
-    'courseCode': 'ANA 2105',
-    'courseTitle': 'Human Anatomy — Thorax & Abdomen',
-    'category': 'Anatomy',
-    'sessionType': 'clinical',
-    'dayOfWeek': 'Monday',
-    'startTime': '14:00',
-    'endTime': '16:00',
-    'room': 'Anatomy Hall',
-    'building': 'Medical School',
-    'lecturerName': 'Prof. Kigozi Bernard',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_11103a4a5-1763295121268.png',
-    'programmeGroups': ['MBR 1', 'BSP I', 'PHA I'],
-    'rating': '4.5',
-    'ratingValue': 4.5,
-    'lecturerSemanticLabel':
-        'Professional photo of senior Ugandan professor in academic gown',
-  },
-  {
-    'id': 'te004',
-    'courseCode': 'BCH 2302',
-    'courseTitle': 'Molecular Biology & Genetics',
-    'category': 'Biochemistry',
-    'sessionType': 'theory',
-    'dayOfWeek': 'Tuesday',
-    'startTime': '08:00',
-    'endTime': '10:00',
-    'room': 'LT 1',
-    'building': 'Main Block',
-    'lecturerName': 'Dr. Atuhaire Grace',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_19469930f-1763299082322.png',
-    'programmeGroups': ['MBR 1', 'BSP I'],
-    'rating': '4.0',
-    'ratingValue': 4.0,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan woman scientist in laboratory',
-  },
-  {
-    'id': 'te005',
-    'courseCode': 'MIC 2201',
-    'courseTitle': 'Medical Microbiology',
-    'category': 'Microbiology',
-    'sessionType': 'practical',
-    'dayOfWeek': 'Tuesday',
-    'startTime': '11:00',
-    'endTime': '14:00',
-    'room': 'Micro Lab 2',
-    'building': 'Science Block',
-    'lecturerName': 'Dr. Ssemanda Peter',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_1fca98af4-1763300295478.png',
-    'programmeGroups': ['MBR 1', 'PHA I'],
-    'rating': '3.5',
-    'ratingValue': 3.5,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan man in medical scrubs',
-  },
-  {
-    'id': 'te006',
-    'courseCode': 'PHM 2401',
-    'courseTitle': 'Pharmacology I — Autonomic Drugs',
-    'category': 'Pharmacology',
-    'sessionType': 'theory',
-    'dayOfWeek': 'Wednesday',
-    'startTime': '09:00',
-    'endTime': '11:00',
-    'room': 'LT 2',
-    'building': 'Main Block',
-    'lecturerName': 'Dr. Nakamya Ruth',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_19469930f-1763299082322.png',
-    'programmeGroups': ['MBR 1', 'PHA I'],
-    'rating': '4.1',
-    'ratingValue': 4.1,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan woman in white lab coat smiling',
-  },
-  {
-    'id': 'te007',
-    'courseCode': 'SUR 3101',
-    'courseTitle': 'Surgical Techniques & Ward Rounds',
-    'category': 'Surgery',
-    'sessionType': 'clinical',
-    'dayOfWeek': 'Wednesday',
-    'startTime': '13:00',
-    'endTime': '16:00',
-    'room': 'Ward 5B',
-    'building': 'MRRH Teaching Hospital',
-    'lecturerName': 'Prof. Kigozi Bernard',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_11103a4a5-1763295121268.png',
-    'programmeGroups': ['MBR 1'],
-    'rating': '4.8',
-    'ratingValue': 4.8,
-    'lecturerSemanticLabel':
-        'Professional photo of senior Ugandan professor in academic gown',
-  },
-  {
-    'id': 'te008',
-    'courseCode': 'COM 1101',
-    'courseTitle': 'Communication Skills & Academic Writing',
-    'category': 'General Studies',
-    'sessionType': 'theory',
-    'dayOfWeek': 'Thursday',
-    'startTime': '08:00',
-    'endTime': '10:00',
-    'room': 'LT 4',
-    'building': 'Humanities Block',
-    'lecturerName': 'Ms. Birungi Sandra',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_1bfdb009f-1772186054453.png',
-    'programmeGroups': ['MBR 1', 'PHA I', 'BSP I'],
-    'rating': '3.2',
-    'ratingValue': 3.2,
-    'lecturerSemanticLabel':
-        'Professional headshot of young Ugandan woman teacher',
-  },
-  {
-    'id': 'te009',
-    'courseCode': 'PHY 2204',
-    'courseTitle': 'Physiology — Cardiovascular System',
-    'category': 'Physiology',
-    'sessionType': 'theory',
-    'dayOfWeek': 'Friday',
-    'startTime': '08:00',
-    'endTime': '10:00',
-    'room': 'LT 1',
-    'building': 'Main Block',
-    'lecturerName': 'Dr. Tumusiime Alex',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_18b8a6be9-1769208310897.png',
-    'programmeGroups': ['MBR 1'],
-    'rating': '4.3',
-    'ratingValue': 4.3,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan male doctor in white coat',
-  },
-  {
-    'id': 'te010',
-    'courseCode': 'ANA 2106',
-    'courseTitle': 'Histology & Embryology',
-    'category': 'Anatomy',
-    'sessionType': 'practical',
-    'dayOfWeek': 'Friday',
-    'startTime': '11:00',
-    'endTime': '13:00',
-    'room': 'Histology Lab',
-    'building': 'Medical School',
-    'lecturerName': 'Dr. Atuhaire Grace',
-    'lecturerAvatar':
-        'https://img.rocket.new/generatedImages/rocket_gen_img_19469930f-1763299082322.png',
-    'programmeGroups': ['MBR 1', 'BSP I'],
-    'rating': '4.0',
-    'ratingValue': 4.0,
-    'lecturerSemanticLabel':
-        'Professional headshot of Ugandan woman scientist in laboratory',
-  },
-];
+// Placeholder: replaced by JSON asset loader below
 
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
@@ -303,32 +142,50 @@ class TimetableScreen extends StatefulWidget {
 
 class _TimetableScreenState extends State<TimetableScreen>
     with TickerProviderStateMixin {
-  // TODO: Replace with Riverpod TimetableNotifier for production
   late List<TimetableEntry> _allEntries;
   int _selectedDayIndex = 0;
   bool _isSyncing = false;
   final bool _isOnline = true;
+  bool _isLoading = true;
+  String? _selectedProgram; // null = show all
 
   final List<String> _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   final List<String> _fullDays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
   ];
 
   late AnimationController _listAnimController;
 
+  /// Load timetable data from bundled JSON asset
+  Future<List<TimetableEntry>> _loadFromAsset() async {
+    try {
+      final jsonStr = await rootBundle.loadString('assets/timetable_data.json');
+      final data = json.decode(jsonStr) as Map<String, dynamic>;
+      final sessions = data['sessions'] as List;
+      return sessions.map((s) => TimetableEntry.fromMap(s as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('Error loading timetable data: $e');
+      return [];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _allEntries = _timetableEntryMaps.map(TimetableEntry.fromMap).toList();
+    _allEntries = [];
+    _isLoading = true;
 
-    // Set current day based on timestamp (2026-08-15 = Saturday index 5)
-    _selectedDayIndex = 5;
+    // Load real data from JSON asset
+    _loadFromAsset().then((entries) {
+      if (mounted) {
+        setState(() {
+          _allEntries = entries;
+          _isLoading = false;
+          // Default to Monday (index 0) — user can switch via day tabs
+          _selectedDayIndex = 0;
+        });
+      }
+    });
 
     _listAnimController = AnimationController(
       vsync: this,
@@ -345,8 +202,11 @@ class _TimetableScreenState extends State<TimetableScreen>
 
   List<TimetableEntry> get _todayEntries {
     final day = _fullDays[_selectedDayIndex];
-    return _allEntries.where((e) => e.dayOfWeek == day).toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    var entries = _allEntries.where((e) => e.dayOfWeek == day).toList();
+    if (_selectedProgram != null) {
+      entries = entries.where((e) => e.programmeGroups.contains(_selectedProgram)).toList();
+    }
+    return entries..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   TimetableEntry? get _nextUpEntry {
@@ -369,11 +229,17 @@ class _TimetableScreenState extends State<TimetableScreen>
     _listAnimController.forward();
   }
 
-  void _onSync() async {
-    // TODO: Replace with actual sync via TimetableRepository.fetchRemoteSchedule()
+  Future<void> _onSync() async {
     setState(() => _isSyncing = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _isSyncing = false);
+    final entries = await _loadFromAsset();
+    if (mounted) {
+      setState(() {
+        _allEntries = entries;
+        _isSyncing = false;
+      });
+      _listAnimController.reset();
+      _listAnimController.forward();
+    }
   }
 
   void _openLectureDetail(TimetableEntry entry) {
@@ -399,6 +265,25 @@ class _TimetableScreenState extends State<TimetableScreen>
     final isTablet = size.width >= 600;
     final theme = Theme.of(context);
 
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              Text('Loading timetable...',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                )),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (isTablet) {
       return _buildTabletLayout(theme);
     }
@@ -407,7 +292,7 @@ class _TimetableScreenState extends State<TimetableScreen>
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async => _onSync(),
+          onRefresh: _onSync,
           color: theme.colorScheme.primary,
           child: CustomScrollView(
             slivers: [
